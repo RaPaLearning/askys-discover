@@ -3,7 +3,8 @@
 To deploy:
 
 ```bash
-gcloud run deploy askys-discover --source . --region asia-south1 --set-secrets OPENAI_API_KEY=OPENAI_API_KEY:latest --set-secrets PINECONE_API_KEY=PINECONE_API_KEY:latest
+cd askys-discover
+gcloud run deploy askys-discover --source . --region asia-south1 --set-secrets OPENAI_API_KEY=OPENAI_API_KEY:latest --set-secrets PINECONE_API_KEY=PINECONE_API_KEY:latest --set-env-vars PINECONE_HOST=https://gita-embeddings-nn2ckh5.svc.aped-4627-b74a.pinecone.io
 ```
 
 To update:
