@@ -1,12 +1,9 @@
 import google.auth.transport.requests
 import google.oauth2.id_token
-
-import google.auth.transport.requests
-import google.oauth2.id_token
 import requests
 
 
-def make_request(service_url: str, method='GET', path='/', json=None, params=None):
+def make_request(service_url: str, method='GET', path='/gita/', json=None, params=None):
     auth_req = google.auth.transport.requests.Request()
     target_audience = service_url
     
@@ -25,7 +22,8 @@ def make_request(service_url: str, method='GET', path='/', json=None, params=Non
     if not path.startswith('/'):
         path = '/' + path
     url = service_url.rstrip('/') + path
-    
+
+    print('invoking url: ', url)
     response = requests.request(
         method=method,
         url=url,
@@ -40,9 +38,8 @@ def make_request(service_url: str, method='GET', path='/', json=None, params=Non
 
 if __name__ == '__main__':
     SERVICE_URL = 'https://askys-discover-572467571658.asia-south1.run.app'
-    SERVICE_ACCOUNT_PATH = '../gitapower-26-3503b0256243.json'
     
-    response = make_request(SERVICE_URL)
+    response = make_request(SERVICE_URL, params={'q': 'p r t'})
     print(response.text)
 
     # Example GET request
