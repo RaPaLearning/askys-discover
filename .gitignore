@@ -1,3 +1,5 @@
 gitapower*.json
 try/requests_only_invoke.py
 askys-create-embed/create_embeddings.py
+**/__pycache__/
+**/*.qdrant

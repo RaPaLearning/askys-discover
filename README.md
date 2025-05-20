@@ -1,6 +1,6 @@
 # Gita retrieval
 
-To deploy:
+To deploy on [google cloud run](https://console.cloud.google.com/run?inv=1&invt=AbxXNQ&project=gitapower-26):
 
 ```bash
 cd askys-discover
