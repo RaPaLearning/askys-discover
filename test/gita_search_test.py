@@ -20,8 +20,7 @@ class TestGitaSearch(unittest.TestCase):
         vdb_path = os.path.join(test_folder, cls.embedder.VDB_DIRNAME)
         if os.path.exists(vdb_path) and os.path.isdir(vdb_path):
             shutil.rmtree(vdb_path)
-        paras, filenames = cls.embedder.get_paragraphs_from_md(os.path.join('test', 'gita-begin-samples'))
-        cls.embedder.to_qdrant(paras, filenames, vdb_path)
+        cls.embedder.md_to_qdrant(os.path.join('test', 'gita-begin-samples'), vdb_path)
         cls.vdb_path = vdb_path
         cls.client = QdrantClient(path=vdb_path)
 
