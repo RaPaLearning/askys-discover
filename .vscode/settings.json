@@ -4,6 +4,9 @@
         "embedder",
         "fastembed",
         "gita",
+        "jsonified",
+        "jsonify",
+        "mdext",
         "Qdrant",
         "sattva"
     ],

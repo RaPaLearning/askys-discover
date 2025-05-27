@@ -14,7 +14,7 @@ def md_to_qdrant(folder_path, vdb_path=VDB_DIRNAME):
     qdrant_client = QdrantClient(path=vdb_path)
     for filename in os.listdir(folder_path):
         print(f"Processing {filename}...", end='')
-        if filename.lower().endswith('.md'):
+        if filename.lower().endswith('.md') and filename[0].isdigit():
             file_path = os.path.join(folder_path, filename)
             with open(file_path, 'r', encoding='utf-8') as f:
                 content = f.read()
@@ -26,7 +26,6 @@ def md_to_qdrant(folder_path, vdb_path=VDB_DIRNAME):
 
 def paras_to_qdrant(paras, filenames, client):
     metadata = [{"source": fname} for fname in filenames]
-    ids = list(range(len(paras)))
     client.add(
         collection_name=VDB_COLLECTION_NAME,
         documents=paras,

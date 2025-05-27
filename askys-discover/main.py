@@ -1,45 +1,19 @@
+from qdrant_client import QdrantClient
 import os
-import openai
-from pinecone.grpc import PineconeGRPC as Pinecone
 from flask import Flask, request, jsonify
 
 app = Flask(__name__)
-version = os.environ.get("VER", "v0.3")
-
-
-def generate_query_embedding(query):
-    response = openai.embeddings.create(
-        model="text-embedding-ada-002",
-        input=query
-    )
-    embedding = response.data[0].embedding
-    return embedding
-
-
-def query_pinecone_index(embedding, index, top_k=3):
-    response = index.query(
-        vector=embedding,
-        top_k=top_k,
-        include_metadata=True
-    )
-    return response
-
+version = os.environ.get("VER", "v2.0")
 
 def jsonified_result(search_string, results):
     matches = []
-    if 'matches' in results:
-        for i, result in enumerate(results['matches']):
-            match_id = result['id']
-            match_metadata = result.get('metadata', {})
-            commentary_chunks = []
-            if match_metadata:
-                commentary_chunks = match_metadata.get('commentary_chunks', 'No commentary chunks available')
-            matches.append({
-                'filename_no_mdext': match_id.rsplit('-', 1)[0],
-                'match_id': match_id,
-                'match_score': result['score'],
-                'commentary_chunks': commentary_chunks
-            })
+    for search_result in results:
+        matches.append({
+            'filename_no_mdext': search_result.metadata['source'].rsplit('.', 1)[0],
+            'match_id': search_result.id,
+            'match_score': search_result.score,
+            'match_text': search_result.document,
+        })
     return jsonify({
             "version": version,
             "to_search": search_string,
@@ -49,28 +23,21 @@ def jsonified_result(search_string, results):
 
 @app.route("/gita/")
 def search_nearest_in_gita():
-    openai_api_key = os.getenv("OPENAI_API_KEY")
-    pinecone_api_key = os.getenv("PINECONE_API_KEY")
-    pinecone_host = os.getenv("PINECONE_HOST")
     to_search = request.args.get('q')
-    errors = ''
-    if not openai_api_key:
-        errors += ' no OPENAI_API_KEY.'
-    if not pinecone_api_key:
-        errors += ' no PINECONE_API_KEY.'
-    if not pinecone_host:
-        errors += ' no PINECONE_HOST'
-    if not errors and to_search:
-        pc = Pinecone(api_key=pinecone_api_key)
-        index = pc.Index(host=pinecone_host)
-        embedding = generate_query_embedding(to_search)
-        result = query_pinecone_index(embedding, index)
+    if to_search:
+        qdrant_client = QdrantClient(path='gita_fastembed.qdrant')
+        result = qdrant_client.query(
+                collection_name='gita_begin_paras',
+                query_text=to_search,
+                limit=3,
+            )
+        print(f"Search result: {result}")
         return jsonified_result(to_search, result)
     else:
         return jsonify({
             "version": version,
             "to_search": to_search,
-            "errors": errors
+            "errors": 'No search query provided.'
         })
 
 
