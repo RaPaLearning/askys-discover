@@ -1,21 +1,46 @@
-from qdrant_client import QdrantClient
+import gzip
+import pickle
 import os
 from flask import Flask, request, jsonify
+from dataclasses import dataclass
 
 app = Flask(__name__)
-version = os.environ.get("VER", "v2.0")
+with gzip.open(os.path.join(os.path.dirname(__file__), "normalized_docs.pkl.gz"), "rb") as f:
+    md_contents = pickle.load(f)
 
-def jsonified_result(search_string, results):
-    matches = []
+@dataclass
+class SearchResult:
+    filename: str
+    id: int
+    score: float
+    content: str
+
+def search(search_string: str) -> list[SearchResult]:
+    to_search = search_string.lower().strip()
+    results: list[SearchResult] = []
+    for content in md_contents:
+        if to_search in content['norm_text']:
+            results.append(
+                SearchResult(
+                    filename=content['filename'],
+                    id=len(results) + 1,
+                    score=1.0,  # Placeholder score
+                    content=content['raw_text']
+                )
+            )
+    return results
+
+def jsonified_result(search_string: str, results: list[SearchResult]):
+    matches: list[dict[str, object]] = []
     for search_result in results:
         matches.append({
-            'filename_no_mdext': search_result.metadata['source'].rsplit('.', 1)[0],
+            'filename_no_mdext': search_result.filename.rsplit('.', 1)[0],
             'match_id': search_result.id,
             'match_score': search_result.score,
-            'match_text': search_result.document,
+            'match_text': search_result.content,
         })
     return jsonify({
-            "version": version,
+            "version": os.environ.get("VER", "v2.0"),
             "to_search": search_string,
             "matches": matches
         })
@@ -25,17 +50,10 @@ def jsonified_result(search_string, results):
 def search_nearest_in_gita():
     to_search = request.args.get('q')
     if to_search:
-        qdrant_client = QdrantClient(path='gita_fastembed.qdrant')
-        result = qdrant_client.query(
-                collection_name='gita_begin_paras',
-                query_text=to_search,
-                limit=3,
-            )
-        print(f"Search result: {result}")
-        return jsonified_result(to_search, result)
+        return jsonified_result(to_search, search(to_search))
     else:
         return jsonify({
-            "version": version,
+            "version": os.environ.get("VER", "v2.0"),
             "to_search": to_search,
             "errors": 'No search query provided.'
         })

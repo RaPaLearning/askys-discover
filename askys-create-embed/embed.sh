@@ -2,4 +2,5 @@
 set -e
 
 git clone https://github.com/RaPaLearning/gita-begin
-python gita_begin_embed.py gita-begin/gita
+python normalize_text.py gita-begin/gita
+mv normalized_docs.pkl.gz ../askys-discover/
