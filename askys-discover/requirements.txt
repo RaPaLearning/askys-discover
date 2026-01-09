@@ -1,4 +1,4 @@
 Flask==3.0.3
 gunicorn==22.0.0
-qdrant-client[fastembed]==1.14.2
+RapidFuzz==3.14.3
 Werkzeug==3.0.3

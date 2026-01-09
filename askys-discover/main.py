@@ -1,42 +1,9 @@
-import gzip
-import pickle
 import os
 from flask import Flask, request, jsonify
-from dataclasses import dataclass
+from search import search, SearchResult
 
 app = Flask(__name__)
-with gzip.open(os.path.join(os.path.dirname(__file__), "normalized_docs.pkl.gz"), "rb") as f:
-    md_contents = pickle.load(f)
 
-@dataclass
-class SearchResult:
-    filename: str
-    id: int
-    score: float
-    content: str
-
-def normalize(text: str) -> str:
-    return " ".join(
-        text.lower()
-            .replace("\r", " ")
-            .replace("\n", " ")
-            .split()
-    )
-
-def search(search_string: str) -> list[SearchResult]:
-    to_search = normalize(search_string)
-    results: list[SearchResult] = []
-    for content in md_contents:
-        if to_search in content['norm_text']:
-            results.append(
-                SearchResult(
-                    filename=content['filename'],
-                    id=len(results) + 1,
-                    score=1.0,  # Placeholder score
-                    content=content['raw_text']
-                )
-            )
-    return results
 
 def jsonified_result(search_string: str, results: list[SearchResult]):
     matches: list[dict[str, object]] = []
