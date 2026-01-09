@@ -1,9 +1,13 @@
 import gzip
 import pickle
 from pathlib import Path
+import re
 
 
 def normalize(text: str) -> str:
+    # Replace markdown hyperlinks with their text
+    text = re.sub(r'\[([^\]]+)\]\([^)]+\)', r'\1', text)
+    
     return " ".join(
         text.lower()
             .replace("\r", " ")

@@ -15,6 +15,18 @@ class TestSearchResults(unittest.TestCase):
         self.assertIsInstance(search_results, list)
         for result in search_results:
             self.assertIn("karma", result.content.lower())
+    
+    def test_search_phrase(self):
+        self.assertEqual(search("origin of Brahma")[0].filename, '11-37_part_1.md')
+        self.assertEqual(search("origin of  Brahma")[0].filename, '11-37_part_1.md')
+        self.assertEqual(search("Origin of Brahma")[0].filename, '11-37_part_1.md')
+    
+    def test_search_phrase_with_typos(self):
+        self.assertEqual(search("origin of Bramha")[0].filename, '11-37_part_1.md')
+
+    def test_search_phrase_with_hyperlink(self):
+        self.assertEqual(search("expand My devotion")[0].filename, '10-1.md')
+
 
 class TestGitaSearchRoute(unittest.TestCase):
     """Test the /gita/ route."""

@@ -15,8 +15,16 @@ class SearchResult:
     score: float
     content: str
 
+def normalize(text: str) -> str:
+    return " ".join(
+        text.lower()
+            .replace("\r", " ")
+            .replace("\n", " ")
+            .split()
+    )
+
 def search(search_string: str) -> list[SearchResult]:
-    to_search = search_string.lower().strip()
+    to_search = normalize(search_string)
     results: list[SearchResult] = []
     for content in md_contents:
         if to_search in content['norm_text']:
