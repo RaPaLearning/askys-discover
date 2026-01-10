@@ -4,6 +4,7 @@ import pickle
 from dataclasses import dataclass, field
 from typing import Optional
 from rapidfuzz import fuzz
+from aksharamukha import transliterate # type: ignore
 # from rank_bm25 import BM25Okapi
 
 with gzip.open(os.path.join(os.path.dirname(__file__), "normalized_docs.pkl.gz"), "rb") as f:
@@ -22,7 +23,7 @@ class SearchEvidence:
     semantic: Optional[MatchesInMD] = None
     fuzzy: Optional[MatchesInMD] = None
     score: float = 0.0
-    matches: list[str] = field(default_factory=list[str])
+    matches: set[str] = field(default_factory=set[str])
 
 @dataclass
 class SearchResult:
@@ -39,44 +40,28 @@ def normalize(text: str) -> str:
             .split()
     )
 
-def search(search_string: str) -> list[SearchResult]:
+def search(search_string: str, try_second_best: bool=True) -> list[SearchResult]:
     to_search = normalize(search_string)
     match_candidates: dict[str, SearchEvidence] = {}  # key is filename
-    def search_evidence_for_file(filename: str) -> SearchEvidence:
+    def evidence_for_file(filename: str) -> SearchEvidence:
         if filename not in match_candidates:
             match_candidates[filename] = SearchEvidence()
         return match_candidates[filename]
     for content in md_contents:
         if to_search in content['norm_text']:
-            search_evidence_for_file(content['filename']).exact = MatchesInMD(
+            evidence_for_file(content['filename']).exact = MatchesInMD(
                     score=1.0,
                     matches=[content['raw_text']]
                 )
         fuzzy_evidence = fuzzy_match(to_search, content)
         if fuzzy_evidence:
-            search_evidence_for_file(content['filename']).fuzzy = fuzzy_evidence
+            evidence_for_file(content['filename']).fuzzy = fuzzy_evidence
+    if match_candidates == {} and try_second_best:
+        second_try = search_for_second_try(to_search)
+        if second_try != to_search:
+            return search(second_try, try_second_best=False)
     fill_score_per_file(match_candidates)
     return top_results(match_candidates)
-
-def fuzzy_match(to_search: str, content: dict[str, str]) -> MatchesInMD | None:
-    ratio = fuzz.partial_ratio(to_search, content['norm_text'])
-    if ratio >= 85:
-        return MatchesInMD(
-            score=ratio / 100.0,
-            matches=[content['raw_text']]
-        )
-    else:
-        return None
-    
-def fill_score_per_file(candidates: dict[str, SearchEvidence]) -> None:
-    for _, evidence in candidates.items():
-        if evidence.exact:
-            evidence.score += evidence.exact.score
-            evidence.matches.extend(evidence.exact.matches)
-        if evidence.fuzzy:
-            evidence.score += evidence.fuzzy.score
-            evidence.matches.extend(evidence.fuzzy.matches)
-        # TODO: Additional scoring logic for other match types can be added here
 
 def top_results(candidates: dict[str, SearchEvidence]) -> list[SearchResult]:
     results: list[SearchResult] = []
@@ -91,3 +76,26 @@ def top_results(candidates: dict[str, SearchEvidence]) -> list[SearchResult]:
             ))
     results.sort(key=lambda x: x.score, reverse=True)
     return results
+
+def fill_score_per_file(candidates: dict[str, SearchEvidence]) -> None:
+    for _, evidence in candidates.items():
+        if evidence.exact:
+            evidence.score += evidence.exact.score
+            evidence.matches.update(evidence.exact.matches)
+        if evidence.fuzzy:
+            evidence.score += evidence.fuzzy.score
+            evidence.matches.update(evidence.fuzzy.matches)
+        # TODO: Additional scoring logic for other match types can be added here
+
+def fuzzy_match(to_search: str, content: dict[str, str]) -> MatchesInMD | None:
+    ratio = fuzz.partial_ratio(to_search, content['norm_text'])
+    if ratio >= 85:
+        return MatchesInMD(
+            score=ratio / 100.0,
+            matches=[content['raw_text']]
+        )
+    else:
+        return None
+
+def search_for_second_try(original_search: str) -> str:
+    return transliterate.process('autodetect', 'HK', original_search) # type: ignore

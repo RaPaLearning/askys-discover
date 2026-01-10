@@ -10,6 +10,11 @@ from urllib.parse import quote
 
 
 class TestSearchResults(unittest.TestCase):
+    def assert_search_results(self, search_results: str, expected_filenames: list[str]):
+        self.assertEqual(len(search_results), len(expected_filenames))
+        filenames = [result.filename for result in search_results]
+        self.assertTrue(all(expected_file in filenames for expected_file in expected_filenames),)
+
     def test_search_one_word(self):
         search_results = search("karma")
         self.assertIsInstance(search_results, list)
@@ -26,6 +31,15 @@ class TestSearchResults(unittest.TestCase):
 
     def test_search_phrase_with_hyperlink(self):
         self.assertEqual(search("expand My devotion")[0].filename, '10-1.md')
+
+    def test_devanagari_word(self):
+        self.assertEqual(search("भूतभृत्")[0].filename, '9-4_to_9-5.md')
+    
+    def test_devanagari_phrase(self):
+        self.assert_search_results(search("योगम् ऐश्वरम्"), ['9-4_to_9-5.md', '11-8.md'])
+
+    def test_devanagari_sandhi(self):
+        self.assert_search_results(search("योगमैश्वरम्"), ['9-4_to_9-5.md', '11-8.md'])
 
 
 class TestGitaSearchRoute(unittest.TestCase):
