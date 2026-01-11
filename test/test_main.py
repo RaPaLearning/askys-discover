@@ -10,10 +10,15 @@ from urllib.parse import quote
 
 
 class TestSearchResults(unittest.TestCase):
-    def assert_search_results(self, search_results: str, expected_filenames: list[str]):
+    def assert_all_search_results(self, search_results: str, expected_filenames: list[str]):
         self.assertEqual(len(search_results), len(expected_filenames))
         filenames = [result.filename for result in search_results]
         self.assertTrue(all(expected_file in filenames for expected_file in expected_filenames),)
+
+    def assert_search_includes(self, search_results: str, expected_filenames: list[str]):
+        filenames = [result.filename for result in search_results]
+        self.assertTrue(all(expected_file in filenames for expected_file in expected_filenames),
+                        f"Expected filenames {expected_filenames} not all found in search results {filenames}")
 
     def test_search_one_word(self):
         search_results = search("karma")
@@ -36,11 +41,13 @@ class TestSearchResults(unittest.TestCase):
         self.assertEqual(search("भूतभृत्")[0].filename, '9-4_to_9-5.md')
     
     def test_devanagari_phrase(self):
-        self.assert_search_results(search("योगम् ऐश्वरम्"), ['9-4_to_9-5.md', '11-8.md'])
+        self.assert_search_includes(search("योगम् ऐश्वरम्"), ['9-4_to_9-5.md', '11-8.md'])
 
     def test_devanagari_sandhi(self):
-        self.assert_search_results(search("योगमैश्वरम्"), ['9-4_to_9-5.md', '11-8.md'])
+        self.assert_all_search_results(search("योगमैश्वरम्"), ['9-4_to_9-5.md', '11-8.md'])
 
+    def test_vocabulary_match(self):
+        self.assert_search_includes(search('good begets good'), ['5-11.md'])
 
 class TestGitaSearchRoute(unittest.TestCase):
     """Test the /gita/ route."""

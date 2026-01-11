@@ -5,11 +5,11 @@ from dataclasses import dataclass, field
 from typing import Optional
 from rapidfuzz import fuzz
 from aksharamukha import transliterate # type: ignore
-# from rank_bm25 import BM25Okapi
+from rank_bm25 import BM25Okapi # type: ignore
 
 with gzip.open(os.path.join(os.path.dirname(__file__), "normalized_docs.pkl.gz"), "rb") as f:
     md_contents = pickle.load(f)
-# bm25_md_contents = BM25Okapi([content.split(" ") for content in (c['norm_text'] for c in md_contents)])
+bm25_md_contents = BM25Okapi([content.split(" ") for content in (c['norm_text'] for c in md_contents)])
 
 @dataclass
 class MatchesInMD:
@@ -56,6 +56,9 @@ def search(search_string: str, try_second_best: bool=True) -> list[SearchResult]
         fuzzy_evidence = fuzzy_match(to_search, content)
         if fuzzy_evidence:
             evidence_for_file(content['filename']).fuzzy = fuzzy_evidence
+    file_matches_bm25 = bm25_file_matches(to_search)
+    for filename in file_matches_bm25:
+        evidence_for_file(filename).bm25 = file_matches_bm25[filename]
     if match_candidates == {} and try_second_best:
         second_try = search_for_second_try(to_search)
         if second_try != to_search:
@@ -75,7 +78,7 @@ def top_results(candidates: dict[str, SearchEvidence]) -> list[SearchResult]:
                 content=match_text
             ))
     results.sort(key=lambda x: x.score, reverse=True)
-    return results
+    return results # TODO return top 3 results[:3] after including semantics
 
 def fill_score_per_file(candidates: dict[str, SearchEvidence]) -> None:
     for _, evidence in candidates.items():
@@ -85,7 +88,10 @@ def fill_score_per_file(candidates: dict[str, SearchEvidence]) -> None:
         if evidence.fuzzy:
             evidence.score += evidence.fuzzy.score
             evidence.matches.update(evidence.fuzzy.matches)
-        # TODO: Additional scoring logic for other match types can be added here
+        if evidence.bm25:
+            evidence.score += evidence.bm25.score
+            evidence.matches.update(evidence.bm25.matches)
+        # TODO: Additional scoring logic for semantics can be added here
 
 def fuzzy_match(to_search: str, content: dict[str, str]) -> MatchesInMD | None:
     ratio = fuzz.partial_ratio(to_search, content['norm_text'])
@@ -96,6 +102,18 @@ def fuzzy_match(to_search: str, content: dict[str, str]) -> MatchesInMD | None:
         )
     else:
         return None
+
+def bm25_file_matches(to_search: str) -> dict[str, MatchesInMD]:
+    tokenized_query = to_search.split(" ")
+    bm25_scores: list[int] = bm25_md_contents.get_scores(tokenized_query) # type: ignore
+    matched_files: dict[str, MatchesInMD] = {}
+    for idx, score in enumerate(bm25_scores):
+        if score > 1.2:  # threshold for BM25 match
+            matched_files[md_contents[idx]['filename']] = MatchesInMD(
+                score=score,
+                matches=[md_contents[idx]['raw_text']]
+            )
+    return matched_files
 
 def search_for_second_try(original_search: str) -> str:
     return transliterate.process('autodetect', 'HK', original_search) # type: ignore
