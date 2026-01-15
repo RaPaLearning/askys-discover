@@ -5,3 +5,4 @@ askys-create-embed/create_embeddings.py
 **/__pycache__/
 **/*.qdrant
 askys-create-embed/gita-begin
+test/*.csv

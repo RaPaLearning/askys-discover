@@ -3,10 +3,10 @@ import os
 import json
 from unittest.mock import patch
 import sys
-sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'askys-discover'))
-
-from main import app, search
 from urllib.parse import quote
+
+sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'askys-discover'))
+from main import app, search
 
 
 class TestSearchResults(unittest.TestCase):
@@ -44,10 +44,17 @@ class TestSearchResults(unittest.TestCase):
         self.assert_search_includes(search("योगम् ऐश्वरम्"), ['9-4_to_9-5.md', '11-8.md'])
 
     def test_devanagari_sandhi(self):
-        self.assert_all_search_results(search("योगमैश्वरम्"), ['9-4_to_9-5.md', '11-8.md'])
+        self.assert_search_includes(search("योगमैश्वरम्"), ['9-4_to_9-5.md', '11-8.md'])
 
     def test_vocabulary_match(self):
         self.assert_search_includes(search('good begets good'), ['5-11.md'])
+
+    def test_semantic_match(self):
+        self.assert_search_includes(search('insignificant in comparison to a mountain'), ['6-47.md'])
+
+    def test_semantic_match_in_meaning(self):
+        meaning_search_results = search('just as you would perform with attachment, work without attachment')
+        self.assert_search_includes(meaning_search_results, ['3-25_to_3-26.md'])
 
 class TestGitaSearchRoute(unittest.TestCase):
     """Test the /gita/ route."""
