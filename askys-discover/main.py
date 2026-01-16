@@ -3,7 +3,7 @@ from flask import Flask, request, jsonify, abort
 from flask_cors import CORS
 from search import search, SearchResult
 
-APP_VERSION = "v4.0"
+APP_VERSION = "v4.1"
 
 app = Flask(__name__)
 CORS(app)
