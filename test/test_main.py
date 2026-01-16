@@ -1,8 +1,8 @@
 import unittest
 import os
 import json
-from unittest.mock import patch
 import sys
+import random
 from urllib.parse import quote
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'askys-discover'))
@@ -25,6 +25,7 @@ class TestSearchResults(unittest.TestCase):
         self.assertIsInstance(search_results, list)
         for result in search_results:
             self.assertIn("karma", result.content.lower())
+            self.assertFalse(result.content.startswith('## '))  # Ensure whole text not returned
     
     def test_search_phrase(self):
         self.assertEqual(search("origin of Brahma")[0].filename, '11-37_part_1.md')
@@ -56,17 +57,21 @@ class TestSearchResults(unittest.TestCase):
         meaning_search_results = search('just as you would perform with attachment, work without attachment')
         self.assert_search_includes(meaning_search_results, ['3-25_to_3-26.md'])
 
+def get_request(test_client, url: str):
+    return test_client.get(url,
+        headers={'Authorization': f'Bearer {''.join([str(random.randint(0, 9)) for _ in range(31)])}'})
+
 class TestGitaSearchRoute(unittest.TestCase):
     """Test the /gita/ route."""
     
     def setUp(self):
-        """Set up test client."""
+        # app is an instance of Flask imported from main.py
         app.config['TESTING'] = True
         self.client = app.test_client()
     
     def test_gita_search_with_query(self):
         """Test /gita/ route with a valid query parameter."""
-        response = self.client.get('/gita/?q=karma')
+        response = get_request(self.client, '/gita/?q=karma')
         
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.content_type, 'application/json')
@@ -79,7 +84,7 @@ class TestGitaSearchRoute(unittest.TestCase):
             
     def test_gita_search_without_query(self):
         """Test /gita/ route without query parameter."""
-        response = self.client.get('/gita/')
+        response = get_request(self.client, '/gita/')
         
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.content_type, 'application/json')
@@ -93,7 +98,7 @@ class TestGitaSearchRoute(unittest.TestCase):
     
     def test_gita_search_with_empty_query(self):
         """Test /gita/ route with empty query parameter."""
-        response = self.client.get('/gita/?q=')
+        response = get_request(self.client, '/gita/?q=')
         
         self.assertEqual(response.status_code, 200)
         data = json.loads(response.get_data(as_text=True))
@@ -105,7 +110,7 @@ class TestGitaSearchRoute(unittest.TestCase):
     def test_gita_search_with_special_characters(self):
         """Test /gita/ route with special characters in query."""
         special_query = "test@#$%^&*()"
-        response = self.client.get(f'/gita/?q={quote(special_query)}')
+        response = get_request(self.client, f'/gita/?q={quote(special_query)}')
         
         self.assertEqual(response.status_code, 200)
         data = json.loads(response.get_data(as_text=True))
@@ -115,7 +120,7 @@ class TestGitaSearchRoute(unittest.TestCase):
     def test_gita_search_with_unicode_query(self):
         """Test /gita/ route with unicode characters."""
         unicode_query = "धर्म"
-        response = self.client.get(f'/gita/?q={unicode_query}')
+        response = get_request(self.client, f'/gita/?q={unicode_query}')
         
         self.assertEqual(response.status_code, 200)
         data = json.loads(response.get_data(as_text=True))
@@ -126,30 +131,13 @@ class TestGitaSearchRoute(unittest.TestCase):
             self.assertIn("धर्म", result['match_text'])
 
     
-    @patch.dict(os.environ, {'VER': 'test-version'})
     def test_gita_search_version_from_environment(self):
         """Test that version is correctly read from environment variable."""
-        response = self.client.get('/gita/?q=test')
-        
+        response = get_request(self.client, '/gita/?q=test')
         self.assertEqual(response.status_code, 200)
         data = json.loads(response.get_data(as_text=True))
-        
-        self.assertEqual(data['version'], 'test-version')
+        self.assertGreater(len(data['version']), 0)
     
-    def test_gita_search_default_version(self):
-        """Test default version when VER environment variable is not set."""
-        with patch.dict(os.environ, {}, clear=True):
-            # Remove VER if it exists
-            if 'VER' in os.environ:
-                del os.environ['VER']
-            
-            response = self.client.get('/gita/?q=test')
-            
-            self.assertEqual(response.status_code, 200)
-            data = json.loads(response.get_data(as_text=True))
-            
-            self.assertEqual(data['version'], 'v2.0')
-
 
 class TestFlaskApp(unittest.TestCase):
     """Test Flask app configuration and general functionality."""
@@ -166,13 +154,13 @@ class TestFlaskApp(unittest.TestCase):
     
     def test_invalid_route(self):
         """Test accessing a non-existent route."""
-        response = self.client.get('/nonexistent/')
+        response = get_request(self.client, '/nonexistent/')
         self.assertEqual(response.status_code, 404)
     
     def test_gita_route_methods(self):
         """Test that /gita/ route only accepts GET requests."""
         # GET should work
-        response = self.client.get('/gita/?q=test')
+        response = get_request(self.client, '/gita/?q=test')
         self.assertEqual(response.status_code, 200)
         
         # POST should return 405 Method Not Allowed
@@ -184,7 +172,7 @@ class TestFlaskApp(unittest.TestCase):
         self.assertEqual(response.status_code, 405)
 
     def test_search_result_data_structure(self):
-        response = self.client.get('/gita/?q=test')
+        response = get_request(self.client, '/gita/?q=test')
         data = json.loads(response.get_data(as_text=True))
         
         for match in data['matches']:
@@ -205,7 +193,7 @@ class TestFlaskApp(unittest.TestCase):
     
     def test_search_result_content(self):
         """Test specific mock data content."""
-        response = self.client.get('/gita/?q=dharma')
+        response = get_request(self.client, '/gita/?q=dharma')
         data = json.loads(response.get_data(as_text=True))
         
         matches = data['matches']

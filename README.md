@@ -6,10 +6,7 @@ To deploy on [google cloud run](https://console.cloud.google.com/run?inv=1&invt=
 
 You need to be logged into the gcloud cli. No other credentials needed for deployment.
 
-```bash
-cd askys-token
-gcloud run deploy askys-token --source . --region asia-south1
-```
+Then use `deploy-askys-discover.sh`
 
 ```bash
 cd askys-discover

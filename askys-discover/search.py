@@ -34,6 +34,7 @@ class SearchResult:
 
 class MatchCandidates:
     def __init__(self, to_search: str) -> None:
+        self.to_search = to_search
         self.bm25_weight = 1 if len(to_search.split(" ")) <= 4 else 0.5
         self.candidates: dict[str, SearchEvidence] = {}
     def __getitem__(self, filename: str) -> SearchEvidence:
@@ -59,7 +60,14 @@ class MatchCandidates:
             if evidence.bm25:
                 evidence.score += evidence.bm25.score * self.bm25_weight
                 evidence.matches.update(evidence.bm25.matches)
-            # TODO: Additional scoring logic for semantics can be added here
+    
+    def trim_contents(self, search_results: list[SearchResult]) -> None:
+        for result in search_results:
+            paras = result.content.split('\n\n')
+            para_scores = [fuzz.partial_ratio(self.to_search, para) for para in paras]
+            max_idx = para_scores.index(max(para_scores))
+            result.content = paras[max_idx]
+
     def top_results(self) -> list[SearchResult]:
         self.fill_score_per_file()
         results: list[SearchResult] = []
@@ -73,8 +81,9 @@ class MatchCandidates:
                     content=match_text
                 ))
         results.sort(key=lambda x: x.score, reverse=True)
-        return list(filter(lambda x: x.score >= 0.85, results[:3]))  # threshold for overall match score
-
+        top_ranked = list(filter(lambda x: x.score >= 0.85, results[:3]))  # threshold for overall match score
+        self.trim_contents(top_ranked)
+        return top_ranked
 
 def normalize(text: str) -> str:
     return " ".join(
