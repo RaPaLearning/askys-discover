@@ -2,8 +2,10 @@ import os
 import google.auth.transport.requests
 import google.oauth2.id_token
 from flask import Flask, request, jsonify
+from flask_cors import CORS
 
 app = Flask(__name__)
+CORS(app)
 prev_token_used = ''
 
 @app.route("/token/")
