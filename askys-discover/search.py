@@ -117,7 +117,7 @@ def search(search_string: str, try_second_best: bool=True) -> list[SearchResult]
 
 def fuzzy_match(to_search: str, content: dict[str, str]) -> MatchesInMD | None:
     ratio = fuzz.partial_ratio(to_search, content['norm_text'])
-    if ratio >= 55:
+    if ratio >= 35:
         return MatchesInMD(
             score=ratio / 100.0,
             matches=[content['raw_text']]

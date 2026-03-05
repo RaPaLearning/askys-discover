@@ -57,6 +57,10 @@ class TestSearchResults(unittest.TestCase):
         meaning_search_results = search('just as you would perform with attachment, work without attachment')
         self.assert_search_includes(meaning_search_results, ['3-25_to_3-26.md'])
 
+    def test_approximately_recollected_phrase(self):
+        self.assertEqual(search('flame that does not shake')[0].filename, '6-19.md')
+        self.assertEqual(search('flame that never shakes')[0].filename, '6-19.md')
+
 def get_request(test_client, url: str):
     return test_client.get(url,
         headers={'Authorization': f'Bearer {''.join([str(random.randint(0, 9)) for _ in range(31)])}'})
