@@ -6,3 +6,4 @@ askys-create-embed/create_embeddings.py
 **/*.qdrant
 askys-create-embed/gita-begin
 test/*.csv
+test/*.xlsx

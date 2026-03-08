@@ -60,6 +60,10 @@ class TestSearchResults(unittest.TestCase):
     def test_approximately_recollected_phrase(self):
         self.assertEqual(search('flame that does not shake')[0].filename, '6-19.md')
         self.assertEqual(search('flame that never shakes')[0].filename, '6-19.md')
+        self.assertEqual(search("flame that doesn't shake")[0].filename, '6-19.md')
+        self.assertEqual(search("unwavering flame")[0].filename, '6-19.md')
+        self.assertEqual(search("steady flame")[0].filename, '6-19.md')
+        self.assertEqual(search("unshaking flame")[0].filename, '6-19.md')
 
 def get_request(test_client, url: str):
     return test_client.get(url,
