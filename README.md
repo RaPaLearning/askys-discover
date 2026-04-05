@@ -10,7 +10,7 @@ Then use `deploy-askys-discover.sh`
 
 ```bash
 cd askys-discover
-gcloud run deploy askys-discover --source . --region asia-south1
+gcloud run deploy askys-discover --source . --base-image python313 --region asia-south1
 ```
 
 ## Enable service account access

@@ -1,6 +1,0 @@
-Flask==3.0.3
-flask-cors==6.0.2
-google-auth==2.37.0
-gunicorn==22.0.0
-requests==2.32.4
-Werkzeug==3.1.4
